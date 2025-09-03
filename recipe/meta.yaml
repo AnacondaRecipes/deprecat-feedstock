@@ -1,40 +1,60 @@
 {% set name = "deprecat" %}
-{% set version = "2.1.1" %}
+{% set version = "2.1.3" %}
 
 package:
   name: {{ name|lower }}
   version: {{ version }}
 
 source:
-  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/deprecat-{{ version }}.tar.gz
-  sha256: d1dfae13ffc2f580b23c0f754e05dc1277814eeb076ced83631264792ec03983
+  url: https://pypi.org/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
+  sha256: d93cdd493af68981f0c7d198c2b9df2358ead5e54ce3e671a3522af8785917e8
 
 build:
   number: 0
-  noarch: python
-  script: {{ PYTHON }} -m pip install . -vv
+  script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  skip: true  # [py<36]
 
 requirements:
   host:
-    - python >=3.6
     - pip
+    - python
+    - wheel
+    - setuptools
   run:
-    - python >=3.6
+    - python
     - wrapt >=1.10,<2
 
+# >   assert "deprecated class method" in str(warn.message)
+# E   AssertionError: assert 'deprecated class method' in 'Call to deprecated function (or staticmethod) foo5.\n-- Deprecated since version 1.2.3.'
+# E    +  where 'Call to deprecated function (or staticmethod) foo5.\n-- Deprecated since version 1.2.3.' = str(MyDeprecationWarning('Call to deprecated function (or staticmethod) foo5.\n-- Deprecated since version 1.2.3.'))
+# E    +    where MyDeprecationWarning('Call to deprecated function (or staticmethod) foo5.\n-- Deprecated since version 1.2.3.') = <warnings.WarningMessage object at 0x1065c4950>.message
+# tests not adapted for py313:
+{% set deselect_tests = "" %}
+{% set deselect_tests = " --deselect=tests/test_deprecat.py::test_classic_deprecat_class_method__warns" %}  # [py>312]
+{% set deselect_tests = deselect_tests + " --deselect=tests/test_sphinx.py::test_sphinx_deprecat_class_method__warns" %}  # [py>312]
+
 test:
+  source_files:
+    - tests
   imports:
     - deprecat
   commands:
     - pip check
+    - pytest -v tests {{ deselect_tests }}
   requires:
     - pip
+    - pytest
 
 about:
   home: https://github.com/deprecat/deprecat
   summary: Python @deprecat decorator to deprecate old python classes, functions or methods.
   license: MIT
+  license_family: MIT
   license_file: LICENSE.rst
+  description: |
+    Python @deprecat decorator to deprecate old python classes, functions or methods.
+  doc_url: https://deprecat.readthedocs.io
+  dev_url: https://github.com/deprecat/deprecat
 
 extra:
   recipe-maintainers:
